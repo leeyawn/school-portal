@@ -1,15 +1,28 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
-import { Button } from '@/components/ui/button'
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
+import { Layout } from "./components/layout/Layout"
+import { Home } from "./pages/Home"
 
 function App() {
+  // Mock user state !
+  const user = {
+    name: "Leon Letournel",
+    isLoggedIn: true
+  }
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-svh">
-      <Button>Click me</Button>
-    </div>
+    <Router>
+      <Layout userName={user.name} isLoggedIn={user.isLoggedIn}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          {/* Add more routes as needed */}
+        </Routes>
+      </Layout>
+    </Router>
   )
 }
 
 export default App
+
+
+
+
