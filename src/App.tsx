@@ -3,6 +3,8 @@ import { Layout } from "./components/layout/Layout"
 import { Home } from "./pages/Home"
 import { Profile } from "./pages/Profile"
 import { Login } from "./pages/Login"
+import { Grades } from "./pages/Grades"
+import { Records } from "./pages/Records"
 import { useState } from "react"
 
 function App() {
@@ -30,7 +32,9 @@ function App() {
                 <Routes>
                   <Route path="/" element={<Home />} />
                   <Route path="/profile" element={<Profile />} />
-                  {/* Add more routes as needed */}
+                  <Route path="/records" element={<Records />} />
+                  <Route path="/records/grades" element={<Grades />} />
+                  {/* more routes later */}
                 </Routes>
               </Layout>
             ) : (

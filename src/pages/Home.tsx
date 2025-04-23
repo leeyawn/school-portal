@@ -25,7 +25,7 @@ export function Home() {
     {
       title: "Degree Works",
       icon: GraduationCap,
-      href: "/records/degree-works",
+      href: "http://uti.degreeworks.suny.edu/",
       color: "text-purple-600"
     },
     {
@@ -63,7 +63,10 @@ export function Home() {
               <action.icon className={`h-4 w-4 ${action.color}`} />
             </CardHeader>
             <CardContent>
-              <Button className="!bg-[#003366] hover:bg-blue-600 p-0 h-auto">
+              <Button 
+                className="p-0 h-auto"
+                onClick={() => window.open(action.href, '_blank')}
+              >
                 Access Now →
               </Button>
             </CardContent>

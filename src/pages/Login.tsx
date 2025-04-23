@@ -28,7 +28,7 @@ export function Login({ onLogin }: LoginProps) {
 
   return (
     <div className="h-screen w-screen fixed inset-0 grid place-content-center">
-      <Card className="w-[400px]">
+      <Card className="w-80">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">Welcome Back</CardTitle>
           <CardDescription className="text-center">
@@ -38,7 +38,7 @@ export function Login({ onLogin }: LoginProps) {
         <CardContent>
           <Button
             onClick={handleMicrosoftLogin}
-            className="w-full !bg-[#003366] hover:!bg-[#002244] text-white"
+            className="w-full text-white"
           >
             <MicrosoftLogo className="mr-2 h-5 w-5" />
             Sign in with Microsoft

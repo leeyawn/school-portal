@@ -56,7 +56,7 @@ export function Sidebar({ className }: SidebarProps) {
       children: [
         { title: "View Grades", href: "/records/grades" },
         { title: "Academic Transcript", href: "/records/transcript" },
-        { title: "Degree Works", href: "/records/degree-works" }
+        { title: "Degree Works", href: "http://uti.degreeworks.suny.edu/" }
       ]
     },
     {
@@ -76,7 +76,7 @@ export function Sidebar({ className }: SidebarProps) {
     {
       title: "Housing & Dining",
       icon: Home,
-      href: "/housing"
+      href: "https://banner.sunypoly.edu/BannerExtensibility/customPage/page/P_ZWGKTHOUSE_MAIN/"
     },
     {
       title: "Personal Information",
