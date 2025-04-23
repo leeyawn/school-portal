@@ -63,7 +63,7 @@ export function Home() {
               <action.icon className={`h-4 w-4 ${action.color}`} />
             </CardHeader>
             <CardContent>
-              <Button variant="ghost" className="p-0 h-auto">
+              <Button className="!bg-[#003366] hover:bg-blue-600 p-0 h-auto">
                 Access Now →
               </Button>
             </CardContent>
@@ -98,15 +98,15 @@ export function Home() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-2">
-              <Button variant="outline" className="justify-start">
+              <Button className="justify-start">
                 <FileText className="mr-2 h-4 w-4" />
                 Academic Calendar
               </Button>
-              <Button variant="outline" className="justify-start">
+              <Button className="justify-start">
                 <BookOpen className="mr-2 h-4 w-4" />
                 Course Catalog
               </Button>
-              <Button variant="outline" className="justify-start">
+              <Button className="justify-start">
                 <CreditCard className="mr-2 h-4 w-4" />
                 Make a Payment
               </Button>

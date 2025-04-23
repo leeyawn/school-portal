@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Settings, Menu } from "lucide-react"
+import { Menu } from "lucide-react"
 import { Link } from "react-router-dom"
 import sunyPolyLogo from "@/assets/images/suny-poly-logo.png"
 import userProfilePic from "@/assets/images/user-profile.jpg"
@@ -12,8 +12,8 @@ interface HeaderProps {
 
 export function Header({ userName, isLoggedIn = false }: HeaderProps) {
   return (
-    <header className="border-b bg-[#003366]">
-      <div className="flex h-16 items-center px-4 container mx-auto">
+    <header className="border-b bg-[#003366] w-full">
+      <div className="flex h-16 items-center px-4">
         <Button variant="ghost" size="icon" className="md:hidden text-white">
           <Menu className="h-6 w-6" />
         </Button>
@@ -30,17 +30,17 @@ export function Header({ userName, isLoggedIn = false }: HeaderProps) {
 
         <div className="ml-auto flex items-center space-x-4">
           {isLoggedIn ? (
-            <>
-              <Button variant="ghost" size="icon" className="text-white">
-                <Settings className="h-5 w-5" />
+            <Link to="/profile">
+              <Button variant="outline">
+                <span className="text-white">Account</span>
+                <Avatar className="h-7 w-7 rounded-md">
+                  <AvatarImage src={userProfilePic} alt={userName} />
+                  <AvatarFallback className="bg-blue-500 text-white">
+                    {userName?.split(' ').map(n => n[0]).join('')}
+                  </AvatarFallback>
+                </Avatar>
               </Button>
-              <Avatar className="h-9 w-9">
-                <AvatarImage src={userProfilePic} alt={userName} />
-                <AvatarFallback className="bg-blue-500 text-white">
-                  {userName?.split(' ').map(n => n[0]).join('')}
-                </AvatarFallback>
-              </Avatar>
-            </>
+            </Link>
           ) : (
             <div className="space-x-2">
               <Button variant="ghost" className="text-white">Sign In</Button>
