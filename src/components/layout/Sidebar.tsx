@@ -86,7 +86,7 @@ export function Sidebar({ className }: SidebarProps) {
   ]
 
   return (
-    <div className={cn("pb-12 w-64 border-r bg-background", className)}>
+    <div className={cn("pb-12 w-64 border-r bg-sidebar", className)}>
       <div className="space-y-4 py-4">
         <div className="px-3 py-2">
           <div className="space-y-1">
@@ -95,14 +95,13 @@ export function Sidebar({ className }: SidebarProps) {
                 <div className="flex items-center">
                   <Link
                     to={item.href}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-foreground hover:bg-muted flex-1"
+                    className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:text-sidebar-primary-foreground hover:bg-sidebar-accent flex-1"
                   >
                     <item.icon className="h-4 w-4" />
                     {item.title}
                   </Link>
                   {item.children && (
                     <Button
-                      variant="ghost"
                       size="icon"
                       onClick={() => toggleSection(item.href.split('/')[1])}
                       className="h-8 w-8"
@@ -121,7 +120,7 @@ export function Sidebar({ className }: SidebarProps) {
                       <Link
                         key={child.href}
                         to={child.href}
-                        className="block rounded-lg px-3 py-2 text-sm text-muted-foreground transition-all hover:text-foreground hover:bg-muted"
+                        className="block rounded-lg px-3 py-2 text-sm text-sidebar-foreground transition-all hover:text-sidebar-primary-foreground hover:bg-sidebar-accent"
                       >
                         {child.title}
                       </Link>

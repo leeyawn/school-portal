@@ -30,17 +30,15 @@ export function Header({ userName, isLoggedIn = false }: HeaderProps) {
 
         <div className="ml-auto flex items-center space-x-4">
           {isLoggedIn ? (
-            <Link to="/profile">
-              <Button variant="outline">
-                <span className="text-white">Account</span>
-                <Avatar className="h-7 w-7 rounded-md">
-                  <AvatarImage src={userProfilePic} alt={userName} />
-                  <AvatarFallback className="bg-blue-500 text-white">
-                    {userName?.split(' ').map(n => n[0]).join('')}
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
-            </Link>
+            <Button variant="outline">
+              <span className="text-white">Account</span>
+              <Avatar className="h-7 w-7 rounded-md">
+                <AvatarImage src={userProfilePic} alt={userName} />
+                <AvatarFallback className="bg-blue-500 text-white">
+                  {userName?.split(' ').map(n => n[0]).join('')}
+                </AvatarFallback>
+              </Avatar>
+            </Button>
           ) : (
             <div className="space-x-2">
               <Button variant="ghost" className="text-white">Sign In</Button>

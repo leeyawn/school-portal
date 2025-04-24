@@ -51,19 +51,19 @@ export function Home() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Welcome Back!</h1>
+      <h1 className="text-3xl font-bold tracking-tight">Welcome Back!</h1>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {quickActions.map((action) => (
-          <Card key={action.href} className="hover:shadow-lg transition-shadow">
+          <Card key={action.href} className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 {action.title}
               </CardTitle>
-              <action.icon className={`h-4 w-4 ${action.color}`} />
+              <action.icon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <Button 
+              <Button
                 className="p-0 h-auto"
                 onClick={() => window.open(action.href, '_blank')}
               >
