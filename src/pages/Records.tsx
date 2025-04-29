@@ -39,14 +39,14 @@ export function Records() {
               <Button
                 key={option.path}
                 variant="outline"
-                className="h-auto p-6 flex flex-col items-start gap-2 text-left hover:bg-accent"
+                className="h-auto p-6 flex flex-col items-start gap-2 text-left"
                 onClick={() => navigate(option.path)}
               >
                 <div className="flex items-center gap-2">
                   <option.icon className="h-5 w-5" />
                   <span className="font-semibold">{option.title}</span>
                 </div>
-                <p className="text-sm text-muted-foreground">{option.description}</p>
+                <p className="text-sm text-white">{option.description}</p>
               </Button>
             ))}
           </div>

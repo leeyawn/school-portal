@@ -4,14 +4,11 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   User,
-  GraduationCap,
   BookOpen,
   FileText,
   CreditCard,
   Heart,
   Home,
-  School,
-  Settings,
   ChevronDown,
   ChevronRight
 } from "lucide-react"
@@ -45,8 +42,7 @@ export function Sidebar({ className }: SidebarProps) {
       children: [
         { title: "Register for Classes", href: "/registration/register" },
         { title: "Browse Classes", href: "/registration/browse" },
-        { title: "Student Schedule", href: "/registration/schedule" },
-        { title: "Prepare for Registration", href: "/registration/prepare" }
+        { title: "Student Schedule", href: "/registration/schedule" }
       ]
     },
     {
@@ -77,11 +73,6 @@ export function Sidebar({ className }: SidebarProps) {
       title: "Housing & Dining",
       icon: Home,
       href: "https://banner.sunypoly.edu/BannerExtensibility/customPage/page/P_ZWGKTHOUSE_MAIN/"
-    },
-    {
-      title: "Personal Information",
-      icon: Settings,
-      href: "/personal"
     }
   ]
 

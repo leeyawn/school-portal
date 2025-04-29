@@ -38,7 +38,7 @@ export function Login({ onLogin }: LoginProps) {
         <CardContent>
           <Button
             onClick={handleMicrosoftLogin}
-            className="w-full text-white"
+            className="w-full"
           >
             <MicrosoftLogo className="mr-2 h-5 w-5" />
             Sign in with Microsoft
