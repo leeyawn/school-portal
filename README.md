@@ -1,54 +1,76 @@
-# React + TypeScript + Vite
+# School Portal
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, responsive school management portal built with React, TypeScript, and Tailwind CSS. This application provides a comprehensive solution for managing school-related activities, student information, and administrative tasks.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Modern and responsive UI built with Tailwind CSS
+- Type-safe development with TypeScript
+- State management with React
+- Routing with React Router
+- Database integration with Supabase
+- Component library with Radix UI
+- Data tables with TanStack Table
 
-## Expanding the ESLint configuration
+## Prerequisites
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Before you begin, ensure you have the following installed:
+- Node.js (v18 or higher)
+- npm (v9 or higher)
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+## Getting Started
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/your-username/school-portal.git
+   cd school-portal
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Start the development server**
+   ```bash
+   npm run dev
+   ```
+
+The application will be available at `http://localhost:5173`
+
+## Available Scripts
+
+- `npm run dev` - Start the development server
+- `npm run build` - Build the application for production
+- `npm run lint` - Run ESLint to check for code quality issues
+- `npm run preview` - Preview the production build locally
+
+## Project Structure
+
+```
+school-portal/
+├── src/              # Source files
+├── public/           # Static assets
+├── node_modules/     # Dependencies
+├── package.json      # Project configuration and dependencies
+├── tsconfig.json     # TypeScript configuration
+├── vite.config.ts    # Vite configuration
+└── tailwind.config.js # Tailwind CSS configuration
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Technologies Used
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- React 19
+- TypeScript
+- Vite
+- Tailwind CSS
+- Supabase
+- Radix UI
+- TanStack Table
+- React Router
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+

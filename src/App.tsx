@@ -4,7 +4,8 @@ import { Home } from "./pages/Home"
 import { Profile } from "./pages/Profile"
 import { Login } from "./pages/Login"
 import { Grades } from "./pages/Grades"
-import { Records } from "./pages/Records"
+import { NotFound } from "./pages/NotFound"
+import { BrowseClasses } from "./pages/BrowseClasses"
 import { useState } from "react"
 
 function App() {
@@ -32,8 +33,9 @@ function App() {
                 <Routes>
                   <Route path="/" element={<Home />} />
                   <Route path="/profile" element={<Profile />} />
-                  <Route path="/records" element={<Records />} />
                   <Route path="/records/grades" element={<Grades />} />
+                  <Route path="/registration/browse" element={<BrowseClasses />} />
+                  <Route path="*" element={<NotFound />} />
                   {/* more routes later */}
                 </Routes>
               </Layout>
