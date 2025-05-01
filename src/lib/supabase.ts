@@ -26,6 +26,7 @@ export interface Course {
   days: string
   instructor: string
   notes: string
+  semester: string
 }
 
 // Function to fetch courses
