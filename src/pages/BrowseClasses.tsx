@@ -7,7 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { fetchCourses, Course } from "@/lib/supabase"
+import supabase, { fetchCourses, Course, enrollInCourse } from "@/lib/supabase"
 import {
   ColumnDef,
   flexRender,
@@ -48,6 +48,8 @@ export function BrowseClasses() {
   const [isFiltering, setIsFiltering] = useState(false)
   const [pageIndex, setPageIndex] = useState(0)
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
+  const [enrollmentError, setEnrollmentError] = useState<string | null>(null)
+  const [isEnrolling, setIsEnrolling] = useState(false)
   const pageSize = 25
 
   // Memoize the filtered courses
@@ -170,6 +172,52 @@ export function BrowseClasses() {
       return [...prev, { id: columnId, value }]
     })
     setPageIndex(0) // Reset to first page when filter changes
+  }
+
+  const handleEnroll = async () => {
+    if (!selectedCourse) return
+
+    setIsEnrolling(true)
+    setEnrollmentError(null)
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user?.email) {
+        throw new Error('No user session found')
+      }
+
+      const { data: studentData, error: studentError } = await supabase
+        .from('students')
+        .select('student_id')
+        .eq('email', session.user.email)
+        .single()
+
+      if (studentError) throw studentError
+
+      const { success, error } = await enrollInCourse(studentData.student_id, selectedCourse.crn)
+      
+      if (!success) {
+        throw error
+      }
+
+      // Refresh the courses data to show updated availability
+      const { data: updatedCourses, error: fetchError } = await fetchCourses()
+      if (fetchError) throw fetchError
+      
+      // Update the courses state and reset selected course
+      setCourses(updatedCourses || [])
+      setSelectedCourse(null)
+      
+      // Reset to first page to ensure we're showing fresh data
+      setPageIndex(0)
+      setIsFiltering(false)
+
+    } catch (err) {
+      console.error('Error enrolling in course:', err)
+      setEnrollmentError(err instanceof Error ? err.message : 'Failed to enroll in course')
+    } finally {
+      setIsEnrolling(false)
+    }
   }
 
   useEffect(() => {
@@ -511,17 +559,19 @@ export function BrowseClasses() {
             </Button>
             <Button 
               className="flex-1 !bg-green-600 hover:!bg-green-600/90 text-white"
-              onClick={() => {
-                // TODO: Implement enrollment logic
-                console.log("Enrolling in course:", selectedCourse?.crn)
-                setSelectedCourse(null)
-              }}
+              onClick={handleEnroll}
+              disabled={isEnrolling || (selectedCourse?.avl ?? 0) <= 0}
             >
-              Enroll
+              {isEnrolling ? 'Enrolling...' : 'Enroll'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {enrollmentError && (
+        <div className="text-red-500 text-sm mt-2 text-center">
+          {enrollmentError}
+        </div>
+      )}
     </div>
   )
 }

@@ -1,9 +1,10 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { useEffect, useState } from "react"
-import supabase, { Student } from "@/lib/supabase"
+import supabase, { Student, StudentCourse, fetchStudentCourses } from "@/lib/supabase"
 
 export function Profile() {
   const [studentInfo, setStudentInfo] = useState<Student | null>(null)
+  const [courses, setCourses] = useState<StudentCourse[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -15,17 +16,24 @@ export function Profile() {
           throw new Error('No user session found')
         }
 
-        const { data, error } = await supabase
+        const { data: studentData, error: studentError } = await supabase
           .from('students')
           .select('*')
           .eq('email', session.user.email)
           .single()
 
-        if (error) throw error
-        setStudentInfo(data)
+        if (studentError) throw studentError
+        setStudentInfo(studentData)
+
+        // Fetch courses for the student
+        if (studentData) {
+          const { data: coursesData, error: coursesError } = await fetchStudentCourses(studentData.student_id)
+          if (coursesError) throw coursesError
+          setCourses(coursesData || [])
+        }
       } catch (err) {
-        console.error('Error fetching student data:', err)
-        setError(err instanceof Error ? err.message : 'Failed to fetch student data')
+        console.error('Error fetching data:', err)
+        setError(err instanceof Error ? err.message : 'Failed to fetch data')
       } finally {
         setLoading(false)
       }
@@ -83,7 +91,7 @@ export function Profile() {
             </div>
             <div>
               <label className="text-sm font-medium text-gray-500">Date of Birth:</label>
-              <div>{studentInfo.dob ? new Date(studentInfo.dob).toLocaleDateString() : 'Not Provided'}</div>
+              <div>{studentInfo.dob ? new Date(studentInfo.dob + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }) : 'Not Provided'}</div>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-500">Ethnicity:</label>
@@ -197,7 +205,78 @@ export function Profile() {
           <CardTitle>REGISTERED COURSES</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-4 text-gray-500">Not Registered</div>
+          {courses.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">Not Registered</div>
+          ) : (
+            <div className="space-y-6">
+              {courses.map((course) => (
+                <div key={course.course_crn} className="border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-4 flex-1">
+                      <div>
+                        <div className="font-semibold text-xl text-gray-900">
+                          {course.course?.subj} {course.course?.crs}-{course.course?.sec}
+                        </div>
+                        <div className="text-lg text-gray-800 mt-1">
+                          {course.course?.title}
+                        </div>
+                        <div className="text-sm text-gray-700 mt-2">
+                          {course.course?.semester}
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div className="space-y-2">
+                          <div className="flex items-center">
+                            <span className="w-24 text-gray-500">CRN:</span>
+                            <span className="font-medium">{course.course_crn}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <span className="w-24 text-gray-500">Instructor:</span>
+                            <span className="font-medium">{course.course?.instructor}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <span className="w-24 text-gray-500">Schedule:</span>
+                            <span className="font-medium">{course.course?.days} {course.course?.time}</span>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center">
+                            <span className="w-24 text-gray-500">Location:</span>
+                            <span className="font-medium">{course.course?.building} {course.course?.room}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <span className="w-24 text-gray-500">Credits:</span>
+                            <span className="font-medium">{course.course?.cr}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <span className="w-24 text-gray-500">Enrolled:</span>
+                            <span className="font-medium">
+                              {new Date(course.enrollment_date).toLocaleDateString('en-US', { 
+                                month: 'long', 
+                                day: 'numeric', 
+                                year: 'numeric',
+                                timeZone: 'UTC'
+                              })}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className={`px-4 py-2 rounded-full text-sm font-medium ${
+                      course.status === 'in_progress' ? 'bg-blue-100 text-blue-800' : 
+                      course.status === 'completed' ? 'bg-green-100 text-green-800' : 
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {course.status === 'in_progress' ? 'In Progress' : 
+                       course.status === 'completed' ? 'Completed' : 
+                       course.status}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -143,4 +143,112 @@ export async function fetchCourses(): Promise<{ data: Course[] | null; error: an
   }
 }
 
+// Function to enroll a student in a course
+export async function enrollInCourse(studentId: string, courseCrn: number): Promise<{ success: boolean; error: any }> {
+  try {
+    // Check if student is already enrolled in this course
+    const { data: existingEnrollment, error: checkError } = await supabase
+      .from('student_courses')
+      .select('*')
+      .eq('student_id', studentId)
+      .eq('course_crn', courseCrn)
+      .single()
+
+    if (checkError && checkError.code !== 'PGRST116') throw checkError
+    if (existingEnrollment) {
+      return { success: false, error: 'You are already enrolled in this course' }
+    }
+
+    // Start a transaction
+    const { data: course, error: courseError } = await supabase
+      .from('courses')
+      .select('avl, enl')
+      .eq('crn', courseCrn)
+      .single()
+
+    if (courseError) throw courseError
+
+    // Check if there are available seats
+    if (course.avl <= 0) {
+      return { success: false, error: 'No available seats' }
+    }
+
+    // Update available seats in courses table
+    const { error: updateError } = await supabase
+      .from('courses')
+      .update({ 
+        avl: course.avl - 1,
+        enl: course.enl + 1
+      })
+      .eq('crn', courseCrn)
+
+    if (updateError) throw updateError
+
+    // Add student to student_courses table with generated UUID
+    const { error: enrollError } = await supabase
+      .from('student_courses')
+      .insert([
+        {
+          id: crypto.randomUUID(), // Generate a UUID for the id field
+          student_id: studentId,
+          course_crn: courseCrn,
+          status: 'in_progress',
+          enrollment_date: new Date().toISOString()
+        }
+      ])
+
+    if (enrollError) throw enrollError
+
+    return { success: true, error: null }
+  } catch (err) {
+    console.error('Error enrolling in course:', err)
+    return { success: false, error: err }
+  }
+}
+
+// Interface for student courses with course details
+export interface StudentCourse {
+  student_id: string
+  course_crn: number
+  enrollment_date: string
+  status: string
+  course?: Course
+}
+
+// Function to fetch student courses with course details
+export async function fetchStudentCourses(studentId: string): Promise<{ data: StudentCourse[] | null; error: any }> {
+  try {
+    const { data, error } = await supabase
+      .from('student_courses')
+      .select(`
+        *,
+        course:course_crn (
+          crn,
+          subj,
+          crs,
+          sec,
+          title,
+          cr,
+          instructor,
+          days,
+          time,
+          building,
+          room
+        )
+      `)
+      .eq('student_id', studentId)
+      .order('enrollment_date', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching student courses:', error)
+      return { data: null, error }
+    }
+
+    return { data, error: null }
+  } catch (err) {
+    console.error('Exception in fetchStudentCourses:', err)
+    return { data: null, error: err }
+  }
+}
+
 
