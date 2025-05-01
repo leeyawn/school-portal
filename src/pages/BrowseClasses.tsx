@@ -133,11 +133,7 @@ export function BrowseClasses() {
     { 
       accessorKey: "instructor", 
       header: "Instructor",
-    },
-    { 
-      accessorKey: "notes", 
-      header: "Notes",
-    },
+    }
   ]
 
   const table = useReactTable({

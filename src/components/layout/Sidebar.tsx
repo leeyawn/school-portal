@@ -1,6 +1,5 @@
 import { cn } from "@/lib/utils"
-import { Link } from "react-router-dom"
-import { useState } from "react"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import {
   User,
@@ -10,23 +9,26 @@ import {
   Heart,
   Home,
   ChevronDown,
-  ChevronRight
+  LogOut
 } from "lucide-react"
+import { useState } from "react"
+import supabase from "@/lib/supabase"
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 export function Sidebar({ className }: SidebarProps) {
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    registration: false,
-    records: false,
-    "financial-aid": false
-  })
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [expandedItems, setExpandedItems] = useState<string[]>([])
 
-  const toggleSection = (section: string) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }))
+  const handleSignOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
+      navigate('/login')
+    } catch (error) {
+      console.error('Error signing out:', error)
+    }
   }
 
   const navigation = [
@@ -76,52 +78,88 @@ export function Sidebar({ className }: SidebarProps) {
     }
   ]
 
+  const toggleExpand = (title: string) => {
+    setExpandedItems(prev => 
+      prev.includes(title) 
+        ? prev.filter(item => item !== title)
+        : [...prev, title]
+    )
+  }
+
   return (
-    <div className={cn("pb-12 w-64 border-r bg-sidebar", className)}>
-      <div className="space-y-4 py-4">
-        <div className="px-3 py-2">
-          <div className="space-y-1">
-            {navigation.map((item) => (
-              <div key={item.href}>
-                <div className="flex items-center">
-                  <Link
-                    to={item.href}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground transition-all hover:text-sidebar-primary-foreground hover:bg-sidebar-accent flex-1"
-                  >
+    <div className={cn("w-64 border-r bg-sidebar transition-all duration-300 flex flex-col", className)}>
+      <nav className="space-y-2 p-4 flex-1">
+        {navigation.map((item) => (
+          <div key={item.href} className="space-y-1">
+            {item.children ? (
+              <div className="space-y-1">
+                <Button
+                  variant="ghost"
+                  className="w-full justify-between px-3 py-2 hover:bg-accent/50"
+                  onClick={() => toggleExpand(item.title)}
+                >
+                  <div className="flex items-center gap-3">
                     <item.icon className="h-4 w-4" />
-                    {item.title}
-                  </Link>
-                  {item.children && (
-                    <Button
-                      size="icon"
-                      onClick={() => toggleSection(item.href.split('/')[1])}
-                      className="h-8 w-8"
-                    >
-                      {expandedSections[item.href.split('/')[1]] ? (
-                        <ChevronDown className="h-4 w-4" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4" />
-                      )}
-                    </Button>
-                  )}
-                </div>
-                {item.children && expandedSections[item.href.split('/')[1]] && (
-                  <div className="ml-6 mt-1 space-y-1">
+                    <span className="text-sm font-medium">{item.title}</span>
+                  </div>
+                  <ChevronDown 
+                    className={cn(
+                      "h-4 w-4 transition-transform duration-200",
+                      expandedItems.includes(item.title) ? "rotate-180" : ""
+                    )} 
+                  />
+                </Button>
+                {expandedItems.includes(item.title) && (
+                  <div className="ml-4 space-y-1 overflow-hidden transition-all duration-200">
                     {item.children.map((child) => (
-                      <Link
+                      <Button
                         key={child.href}
-                        to={child.href}
-                        className="block rounded-lg px-3 py-2 text-sm text-sidebar-foreground transition-all hover:text-sidebar-primary-foreground hover:bg-sidebar-accent"
+                        variant="ghost"
+                        className={cn(
+                          "w-full justify-start px-3 py-1.5 text-sm transition-colors",
+                          location.pathname === child.href 
+                            ? "bg-accent text-accent-foreground" 
+                            : "hover:bg-accent/50"
+                        )}
+                        asChild
                       >
-                        {child.title}
-                      </Link>
+                        <Link to={child.href}>
+                          <span className="text-sm">{child.title}</span>
+                        </Link>
+                      </Button>
                     ))}
                   </div>
                 )}
               </div>
-            ))}
+            ) : (
+              <Button
+                variant="ghost"
+                className={cn(
+                  "w-full justify-start gap-3 px-3 py-2 transition-colors",
+                  location.pathname === item.href 
+                    ? "bg-accent text-accent-foreground" 
+                    : "hover:bg-accent/50"
+                )}
+                asChild
+              >
+                <Link to={item.href}>
+                  <item.icon className="h-4 w-4" />
+                  <span className="text-sm font-medium">{item.title}</span>
+                </Link>
+              </Button>
+            )}
           </div>
-        </div>
+        ))}
+      </nav>
+      <div className="p-4 border-t">
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-3 px-3 py-2 text-red-500 hover:text-red-600 hover:bg-red-50"
+          onClick={handleSignOut}
+        >
+          <LogOut className="h-4 w-4" />
+          <span className="text-sm font-medium">Sign Out</span>
+        </Button>
       </div>
     </div>
   )

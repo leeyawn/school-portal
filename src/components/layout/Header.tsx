@@ -2,10 +2,13 @@ import { Button } from "@/components/ui/button"
 import { Menu } from "lucide-react"
 import { Link } from "react-router-dom"
 import sunyPolyLogo from "@/assets/images/suny-poly-logo.png"
+import { cn } from "@/lib/utils"
 
-export function Header() {
+interface HeaderProps extends React.HTMLAttributes<HTMLElement> {}
+
+export function Header({ className, ...props }: HeaderProps) {
   return (
-    <header className="border-b bg-[#003366] w-full">
+    <header className={cn("border-b bg-[#003366] w-full", className)} {...props}>
       <div className="flex h-16 items-center px-4">
         <Button variant="ghost" size="icon" className="md:hidden">
           <Menu className="h-6 w-6" />
