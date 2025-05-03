@@ -7,7 +7,7 @@ interface LayoutProps {
   isLoggedIn?: boolean
 }
 
-export function Layout({ children, userName, isLoggedIn }: LayoutProps) {
+export function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen h-full w-full">
       <Header className="fixed top-0 left-0 right-0 z-50" />

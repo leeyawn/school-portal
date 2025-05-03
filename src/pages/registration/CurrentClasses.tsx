@@ -1,6 +1,7 @@
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { useEffect, useState } from "react"
 import supabase, { StudentCourse, fetchStudentCourses, dropCourse } from "@/lib/supabase"
+import { formatTime, formatDays } from "@/lib/utils"
 import {
   Select,
   SelectContent,
@@ -9,6 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,17 +22,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-
-function formatDays(daysStr: string): string {
-  // Normalize to uppercase and trim whitespace
-  daysStr = daysStr.toUpperCase().replace(/\s+/g, "")
-  console.log('Raw days string:', daysStr) // Debug log
-  // Example: "MWF" => "Mon, Wed, Fri"
-  const map: Record<string, string> = { M: "Mon", T: "Tue", W: "Wed", R: "Thu", F: "Fri" }
-  const formattedDays = daysStr.split("").map(d => map[d]).filter(Boolean).join(", ")
-  console.log('Formatted days:', formattedDays) // Debug log
-  return formattedDays
-}
 
 interface CourseCardProps {
   course: StudentCourse;
@@ -65,7 +56,7 @@ function CourseCard({ course, onDrop }: CourseCardProps) {
               </div>
               <div className="flex items-center">
                 <span className="w-24 text-gray-500">Schedule:</span>
-                <span className="font-medium">{formatDays(course.course?.days || "")} {course.course?.time}</span>
+                <span className="font-medium">{formatDays(course.course?.days || "")} {formatTime(course.course?.time || "")}</span>
               </div>
             </div>
             <div className="space-y-2">
@@ -92,15 +83,18 @@ function CourseCard({ course, onDrop }: CourseCardProps) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className={`px-4 py-2 rounded-full text-sm font-medium self-start ${
-            course.status === 'in_progress' ? 'bg-blue-100 text-blue-800' : 
-            course.status === 'completed' ? 'bg-green-100 text-green-800' : 
-            'bg-gray-100 text-gray-800'
-          }`}>
+          <Badge
+            variant="secondary"
+            className={`self-start px-4 py-1 text-sm ${
+              course.status === 'in_progress' ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-50' : 
+              course.status === 'completed' ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-50' : 
+              'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-50'
+            }`}
+          >
             {course.status === 'in_progress' ? 'In Progress' : 
              course.status === 'completed' ? 'Completed' : 
              course.status}
-          </div>
+          </Badge>
           {course.status === 'in_progress' && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -163,7 +157,7 @@ export function CurrentClasses() {
 
       if (studentError) throw studentError
 
-      const { success, error } = await dropCourse(studentData.student_id, parseInt(courseCRN))
+      const { error } = await dropCourse(studentData.student_id, parseInt(courseCRN))
       if (error) throw error
 
       // Refresh the courses list

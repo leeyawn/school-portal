@@ -25,18 +25,19 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 export function BrowseClasses() {
   const [courses, setCourses] = useState<Course[]>([])
@@ -262,26 +263,19 @@ export function BrowseClasses() {
           <p className="text-md text-gray-600 mt-1">Search and enroll in available courses for each semester</p>
         </div>
         <div className="flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-8 px-2 lg:px-3"
-                disabled={isFiltering}
-              >
-                {selectedSemester}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleSemesterChange("Fall 2025")}>
-                Fall 2025
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleSemesterChange("Spring 2025")}>
-                Spring 2025
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Select
+            value={selectedSemester}
+            onValueChange={handleSemesterChange}
+            disabled={isFiltering}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select semester" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Fall 2025">Fall 2025</SelectItem>
+              <SelectItem value="Spring 2025">Spring 2025</SelectItem>
+            </SelectContent>
+          </Select>
           {activeFilters > 0 && (
             <Button
               variant="ghost"

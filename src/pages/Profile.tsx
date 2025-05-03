@@ -50,7 +50,7 @@ export function Profile() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Student Profile</h1>
+          <h1 className="text-2xl font-semibold">Student Profile</h1>
           <div className="text-xl font-semibold text-gray-800 mt-2">
             {studentInfo.first_name} {studentInfo.last_name}
           </div>

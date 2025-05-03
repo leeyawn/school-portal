@@ -258,12 +258,12 @@ export interface Grade {
   credits: number;
   midgrade?: string;
   fingrade?: string;
-  term: string;
+  semester: string;
 }
 
 export interface GradesData {
   grades: Grade[];
-  terms: string[];
+  semesters: string[];
 }
 
 // Function to fetch student grades
@@ -293,16 +293,16 @@ export async function fetchStudentGrades(studentId: string): Promise<{ data: Gra
       credits: grade.course.cr,
       midgrade: grade.midgrade || undefined,
       fingrade: grade.fingrade || undefined,
-      term: grade.course.semester || 'Unknown'
+      semester: grade.course.semester || 'Unknown'
     }))
 
-    // Get unique terms
-    const terms = ["All Terms", ...new Set(transformedGrades.map(g => g.term))]
+    // Get unique semesters
+    const semesters = ["All Semesters", ...new Set(transformedGrades.map(g => g.semester))]
 
     return {
       data: {
         grades: transformedGrades,
-        terms
+        semesters
       },
       error: null
     }

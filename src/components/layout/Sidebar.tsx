@@ -33,6 +33,11 @@ export function Sidebar({ className }: SidebarProps) {
 
   const navigation = [
     {
+      title: "Home",
+      icon: Home,
+      href: "/"
+    },
+    {
       title: "Student Profile",
       icon: User,
       href: "/profile"

@@ -18,8 +18,8 @@ import { useEffect, useState } from "react"
 import supabase, { GradesData, fetchStudentGrades } from "@/lib/supabase"
 
 export function Grades() {
-  const [gradesData, setGradesData] = useState<GradesData>({ grades: [], terms: [] })
-  const [selectedTerm, setSelectedTerm] = useState("All Terms")
+  const [gradesData, setGradesData] = useState<GradesData>({ grades: [], semesters: [] })
+  const [selectedSemester, setSelectedSemester] = useState("All Semesters")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -55,9 +55,9 @@ export function Grades() {
     fetchGrades()
   }, [])
 
-  const filteredGrades = selectedTerm === "All Terms"
+  const filteredGrades = selectedSemester === "All Semesters"
     ? gradesData.grades
-    : gradesData.grades.filter(grade => grade.term === selectedTerm)
+    : gradesData.grades.filter(grade => grade.semester === selectedSemester)
 
   if (loading) {
     return <div className="flex justify-center items-center min-h-[60vh]">Loading...</div>
@@ -72,19 +72,19 @@ export function Grades() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-semibold">View Grades</h1>
-          <p className="text-md text-gray-600 mt-1">View your academic performance and grades for each term</p>
+          <p className="text-md text-gray-600 mt-1">View your academic performance and grades for each semester</p>
         </div>
         <Select
-          value={selectedTerm}
-          onValueChange={setSelectedTerm}
+          value={selectedSemester}
+          onValueChange={setSelectedSemester}
         >
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Select term" />
+            <SelectValue placeholder="Select semester" />
           </SelectTrigger>
           <SelectContent>
-            {gradesData.terms.map((term) => (
-              <SelectItem key={term} value={term}>
-                {term}
+            {gradesData.semesters.map((semester) => (
+              <SelectItem key={semester} value={semester}>
+                {semester}
               </SelectItem>
             ))}
           </SelectContent>
@@ -96,7 +96,7 @@ export function Grades() {
         </CardHeader>
         <CardContent>
           {filteredGrades.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">No grades available for this term</div>
+            <div className="text-center py-8 text-gray-500">No grades available for this semester</div>
           ) : (
             <Table>
               <TableHeader>
@@ -106,7 +106,7 @@ export function Grades() {
                   <TableHead>Credits</TableHead>
                   <TableHead>Midterm Grade</TableHead>
                   <TableHead>Final Grade</TableHead>
-                  <TableHead>Term</TableHead>
+                  <TableHead>Semester</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -117,7 +117,7 @@ export function Grades() {
                     <TableCell>{grade.credits}</TableCell>
                     <TableCell>{grade.midgrade ?? '-'}</TableCell>
                     <TableCell>{grade.fingrade ?? '-'}</TableCell>
-                    <TableCell>{grade.term}</TableCell>
+                    <TableCell>{grade.semester}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

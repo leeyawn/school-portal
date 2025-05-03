@@ -1,69 +1,24 @@
 import { useEffect, useState } from "react";
 import supabase, { fetchStudentCourses, StudentCourse } from "@/lib/supabase";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { formatTime, formatBuilding, parseDays, parseTime } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 const START_HOUR = 8;
-const END_HOUR = 18; // 6pm
-
-function formatBuilding(building: string): string {
-  const buildingMap: Record<string, string> = {
-    "DONOVN": "Donovan Hall",
-    "KUNSHL": "Kunsela Hall",
-    // Add more building mappings as needed
-  };
-  return buildingMap[building] || building;
-}
-
-function formatTime(timeStr: string): string {
-  if (!timeStr) return "";
-  const [start, end] = timeStr.split("-");
-  const formatHour = (t: string) => {
-    if (t.includes(":")) {
-      return t;
-    } else if (t.length === 4) {
-      const h = Number(t.slice(0, 2));
-      const m = t.slice(2, 4);
-      const period = h >= 12 ? "PM" : "AM";
-      const hour = h > 12 ? h - 12 : h === 0 ? 12 : h;
-      return `${hour}:${m} ${period}`;
-    }
-    return t;
-  };
-  return `${formatHour(start)}-${formatHour(end)}`;
-}
-
-function parseDays(daysStr: string): string[] {
-  // Normalize to uppercase and trim whitespace
-  daysStr = daysStr.toUpperCase().replace(/\s+/g, "");
-  // Example: "MWF" => ["Mon", "Wed", "Fri"]
-  const map: Record<string, string> = { M: "Mon", T: "Tue", W: "Wed", R: "Thu", F: "Fri" };
-  return daysStr.split("").map(d => map[d]).filter(Boolean);
-}
-
-function parseTime(timeStr: string): [number, number] {
-  // Accepts "14:00-15:50" or "1400-1550"
-  if (!timeStr) return [START_HOUR, START_HOUR + 1];
-  const [start, end] = timeStr.split("-");
-  const toHour = (t: string) => {
-    if (t.includes(":")) {
-      const [h, m] = t.split(":").map(Number);
-      return h + (m ? m / 60 : 0);
-    } else if (t.length === 4) {
-      // e.g., "1400"
-      const h = Number(t.slice(0, 2));
-      const m = Number(t.slice(2, 4));
-      return h + (m ? m / 60 : 0);
-    }
-    return Number(t) || START_HOUR;
-  };
-  return [toHour(start), toHour(end)];
-}
+const END_HOUR = 22; // 10pm
 
 export function Schedule() {
   const [courses, setCourses] = useState<StudentCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedSemester, setSelectedSemester] = useState<string>("");
 
   useEffect(() => {
     async function loadCourses() {
@@ -89,9 +44,24 @@ export function Schedule() {
     loadCourses();
   }, []);
 
+  // Get unique semesters from courses
+  const semesters = [...new Set(courses
+    .map(course => course.course?.semester)
+    .filter((semester): semester is string => semester !== undefined && semester !== null))];
+
+  // Set initial semester if not set and semesters are available
+  useEffect(() => {
+    if (semesters.length > 0 && !selectedSemester) {
+      setSelectedSemester(semesters[0]);
+    }
+  }, [semesters, selectedSemester]);
+
+  // Filter courses by selected semester
+  const filteredCourses = courses.filter(course => course.course?.semester === selectedSemester);
+
   // Build a map: { day: { hour: [courses] } }
   const calendar: Record<string, { course: StudentCourse; start: number; end: number }[]> = {};
-  for (const course of courses) {
+  for (const course of filteredCourses) {
     if (!course.course) continue;
     console.log("Processing course:", {
       subject: course.course?.subj,
@@ -112,25 +82,41 @@ export function Schedule() {
 
   if (loading) return <div className="flex justify-center items-center min-h-[60vh]">Loading...</div>;
   if (error) return <div className="flex justify-center items-center min-h-[60vh] text-red-500">Error: {error}</div>;
+  if (semesters.length === 0) return <div className="flex justify-center items-center min-h-[60vh] text-gray-500">No semesters available</div>;
 
   return (
-    <div className="container mx-auto p-4 space-y-8">
-      <div className="space-y-6">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-semibold">Student Schedule</h1>
           <p className="text-md text-gray-600 mt-1">View your weekly class schedule and enrolled courses</p>
         </div>
+        <Select
+          value={selectedSemester}
+          onValueChange={setSelectedSemester}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Select semester" />
+          </SelectTrigger>
+          <SelectContent>
+            {semesters.map((semester) => (
+              <SelectItem key={semester} value={semester}>
+                {semester}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <Card>
         <CardHeader>
           <CardTitle>Currently Enrolled Classes</CardTitle>
         </CardHeader>
         <CardContent>
-          {courses.length === 0 ? (
+          {filteredCourses.length === 0 ? (
             <div className="text-gray-500">Not enrolled in any classes.</div>
           ) : (
             <ul className="space-y-2">
-              {courses.map((c) => (
+              {filteredCourses.map((c) => (
                 <li key={c.course_crn} className="border rounded p-2 flex flex-col md:flex-row md:items-center md:justify-between">
                   <span className="font-semibold">{c.course?.subj} {c.course?.crs} - {c.course?.title}</span>
                   <span className="text-sm text-gray-600">{c.course?.days} {formatTime(c.course?.time || "")} | {formatBuilding(c.course?.building || "")} {c.course?.room} | {c.course?.instructor}</span>
@@ -157,10 +143,14 @@ export function Schedule() {
                 </tr>
               </thead>
               <tbody>
-                {Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i).map(hour => (
+                {Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i).map((hour: number) => (
                   <tr key={hour}>
                     <td className="border p-2 text-xs bg-gray-50 text-right align-top">
-                      {hour}:00
+                      {(() => {
+                        const period = hour >= 12 ? "PM" : "AM";
+                        const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+                        return `${displayHour}:00 ${period}`;
+                      })()}
                     </td>
                     {DAYS.map(day => {
                       const slotCourses = (calendar[day] || []).filter(c => Math.floor(c.start) === hour);
