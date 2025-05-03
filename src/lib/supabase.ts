@@ -233,7 +233,8 @@ export async function fetchStudentCourses(studentId: string): Promise<{ data: St
           days,
           time,
           building,
-          room
+          room,
+          semester
         )
       `)
       .eq('student_id', studentId)
@@ -248,6 +249,118 @@ export async function fetchStudentCourses(studentId: string): Promise<{ data: St
   } catch (err) {
     console.error('Exception in fetchStudentCourses:', err)
     return { data: null, error: err }
+  }
+}
+
+export interface Grade {
+  courseCode: string;
+  courseName: string;
+  credits: number;
+  midgrade?: string;
+  fingrade?: string;
+  term: string;
+}
+
+export interface GradesData {
+  grades: Grade[];
+  terms: string[];
+}
+
+// Function to fetch student grades
+export async function fetchStudentGrades(studentId: string): Promise<{ data: GradesData | null; error: any }> {
+  try {
+    // Fetch the grades for this student
+    const { data: grades, error: gradesError } = await supabase
+      .from('student_grades')
+      .select(`
+        *,
+        course:course_crn (
+          subj,
+          crs,
+          title,
+          cr,
+          semester
+        )
+      `)
+      .eq('student_id', studentId)
+
+    if (gradesError) throw gradesError
+
+    // Transform the data into the format we need
+    const transformedGrades = grades.map(grade => ({
+      courseCode: `${grade.course.subj} ${grade.course.crs}`,
+      courseName: grade.course.title,
+      credits: grade.course.cr,
+      midgrade: grade.midgrade || undefined,
+      fingrade: grade.fingrade || undefined,
+      term: grade.course.semester || 'Unknown'
+    }))
+
+    // Get unique terms
+    const terms = ["All Terms", ...new Set(transformedGrades.map(g => g.term))]
+
+    return {
+      data: {
+        grades: transformedGrades,
+        terms
+      },
+      error: null
+    }
+  } catch (err) {
+    console.error('Error fetching grades:', err)
+    return { data: null, error: err }
+  }
+}
+
+// Function to drop a course
+export async function dropCourse(studentId: string, courseCrn: number): Promise<{ success: boolean; error: any }> {
+  try {
+    // Check if student is enrolled in this course
+    const { data: existingEnrollment, error: checkError } = await supabase
+      .from('student_courses')
+      .select('*')
+      .eq('student_id', studentId)
+      .eq('course_crn', courseCrn)
+      .single()
+
+    if (checkError) throw checkError
+    if (!existingEnrollment) {
+      return { success: false, error: 'You are not enrolled in this course' }
+    }
+
+    // Get current course enrollment numbers
+    const { data: course, error: courseError } = await supabase
+      .from('courses')
+      .select('avl, enl')
+      .eq('crn', courseCrn)
+      .single()
+
+    if (courseError) throw courseError
+
+    // Update available seats in courses table
+    const { error: updateError } = await supabase
+      .from('courses')
+      .update({ 
+        avl: course.avl + 1,
+        enl: course.enl - 1
+      })
+      .eq('crn', courseCrn)
+
+    if (updateError) throw updateError
+
+    // Remove student from student_courses table
+    const { error: deleteError } = await supabase
+      .from('student_courses')
+      .delete()
+      .eq('student_id', studentId)
+      .eq('course_crn', courseCrn)
+
+    if (deleteError) throw deleteError
+
+    return { success: true, error: null }
+  } catch (err) {
+    console.error('Error dropping course:', err)
+    return { success: false, error: err }
   }
 }
 

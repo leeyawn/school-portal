@@ -42,7 +42,7 @@ export function Sidebar({ className }: SidebarProps) {
       icon: BookOpen,
       href: "/registration",
       children: [
-        { title: "Register for Classes", href: "/registration/register" },
+        { title: "Current Classes", href: "/registration/current" },
         { title: "Browse Classes", href: "/registration/browse" },
         { title: "Student Schedule", href: "/registration/schedule" }
       ]

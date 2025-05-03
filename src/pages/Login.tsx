@@ -83,7 +83,10 @@ export function Login({ onLogin }: LoginProps) {
         provider: 'azure',
         options: {
           scopes: 'email profile openid user.read',
-          redirectTo: window.location.origin + '/login'
+          redirectTo: window.location.origin + '/login',
+          queryParams: {
+            prompt: 'select_account'
+          }
         }
       })
 

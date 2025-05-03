@@ -1,0 +1,296 @@
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { useEffect, useState } from "react"
+import supabase, { StudentCourse, fetchStudentCourses, dropCourse } from "@/lib/supabase"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
+function formatDays(daysStr: string): string {
+  // Normalize to uppercase and trim whitespace
+  daysStr = daysStr.toUpperCase().replace(/\s+/g, "")
+  console.log('Raw days string:', daysStr) // Debug log
+  // Example: "MWF" => "Mon, Wed, Fri"
+  const map: Record<string, string> = { M: "Mon", T: "Tue", W: "Wed", R: "Thu", F: "Fri" }
+  const formattedDays = daysStr.split("").map(d => map[d]).filter(Boolean).join(", ")
+  console.log('Formatted days:', formattedDays) // Debug log
+  return formattedDays
+}
+
+interface CourseCardProps {
+  course: StudentCourse;
+  onDrop: (courseCRN: string) => void;
+}
+
+function CourseCard({ course, onDrop }: CourseCardProps) {
+  const [courseToDrop, setCourseToDrop] = useState<{ crn: string; title: string } | null>(null)
+
+  return (
+    <div className="border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
+      <div className="flex justify-between items-start">
+        <div className="space-y-4 flex-1">
+          <div>
+            <div className="font-semibold text-xl text-gray-900">
+              {course.course?.subj} {course.course?.crs}-{course.course?.sec}
+            </div>
+            <div className="text-lg text-gray-800 mt-1">
+              {course.course?.title}
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div className="space-y-2">
+              <div className="flex items-center">
+                <span className="w-24 text-gray-500">CRN:</span>
+                <span className="font-medium">{course.course_crn}</span>
+              </div>
+              <div className="flex items-center">
+                <span className="w-24 text-gray-500">Instructor:</span>
+                <span className="font-medium">{course.course?.instructor}</span>
+              </div>
+              <div className="flex items-center">
+                <span className="w-24 text-gray-500">Schedule:</span>
+                <span className="font-medium">{formatDays(course.course?.days || "")} {course.course?.time}</span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center">
+                <span className="w-24 text-gray-500">Location:</span>
+                <span className="font-medium">{course.course?.building} {course.course?.room}</span>
+              </div>
+              <div className="flex items-center">
+                <span className="w-24 text-gray-500">Credits:</span>
+                <span className="font-medium">{course.course?.cr}</span>
+              </div>
+              <div className="flex items-center">
+                <span className="w-24 text-gray-500">Enrolled:</span>
+                <span className="font-medium">
+                  {new Date(course.enrollment_date).toLocaleDateString('en-US', { 
+                    month: 'long', 
+                    day: 'numeric', 
+                    year: 'numeric',
+                    timeZone: 'UTC'
+                  })}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className={`px-4 py-2 rounded-full text-sm font-medium self-start ${
+            course.status === 'in_progress' ? 'bg-blue-100 text-blue-800' : 
+            course.status === 'completed' ? 'bg-green-100 text-green-800' : 
+            'bg-gray-100 text-gray-800'
+          }`}>
+            {course.status === 'in_progress' ? 'In Progress' : 
+             course.status === 'completed' ? 'Completed' : 
+             course.status}
+          </div>
+          {course.status === 'in_progress' && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setCourseToDrop({ crn: course.course_crn.toString(), title: course.course?.title || '' })}
+                  className="ml-2"
+                >
+                  Drop
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure you want to drop this course?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    You are about to drop {course.course?.subj} {course.course?.crs}-{course.course?.sec}: {course.course?.title}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-white hover:bg-destructive/90"
+                    onClick={() => {
+                      if (courseToDrop) {
+                        onDrop(courseToDrop.crn)
+                      }
+                    }}
+                  >
+                    Drop Course
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function CurrentClasses() {
+  const [courses, setCourses] = useState<StudentCourse[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedSemester, setSelectedSemester] = useState<string>("All Semesters")
+
+  const handleDropCourse = async (courseCRN: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user?.email) {
+        throw new Error('No user session found')
+      }
+
+      const { data: studentData, error: studentError } = await supabase
+        .from('students')
+        .select('student_id')
+        .eq('email', session.user.email)
+        .single()
+
+      if (studentError) throw studentError
+
+      const { success, error } = await dropCourse(studentData.student_id, parseInt(courseCRN))
+      if (error) throw error
+
+      // Refresh the courses list
+      const { data: coursesData, error: coursesError } = await fetchStudentCourses(studentData.student_id)
+      if (coursesError) throw coursesError
+      setCourses(coursesData || [])
+    } catch (err) {
+      console.error('Error dropping course:', err)
+      setError(err instanceof Error ? err.message : 'Failed to drop course')
+    }
+  }
+
+  useEffect(() => {
+    async function fetchStudentCoursesData() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session?.user?.email) {
+          throw new Error('No user session found')
+        }
+
+        const { data: studentData, error: studentError } = await supabase
+          .from('students')
+          .select('student_id')
+          .eq('email', session.user.email)
+          .single()
+
+        if (studentError) throw studentError
+
+        if (studentData) {
+          const { data: coursesData, error: coursesError } = await fetchStudentCourses(studentData.student_id)
+          if (coursesError) throw coursesError
+          console.log('Fetched courses:', coursesData) // Debug log
+          setCourses(coursesData || [])
+        }
+      } catch (err) {
+        console.error('Error fetching courses:', err)
+        setError(err instanceof Error ? err.message : 'Failed to fetch courses')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchStudentCoursesData()
+  }, [])
+
+  // Get unique semesters from courses
+  const semesters = ["All Semesters", ...new Set(courses
+    .map(course => course.course?.semester)
+    .filter((semester): semester is string => semester !== undefined && semester !== null))]
+
+  // Filter courses by selected semester
+  const filteredCourses = selectedSemester === "All Semesters"
+    ? courses
+    : courses.filter(course => course.course?.semester === selectedSemester)
+
+  if (loading) {
+    return <div className="flex justify-center items-center min-h-[60vh]">Loading...</div>
+  }
+
+  if (error) {
+    return <div className="flex justify-center items-center min-h-[60vh] text-red-500">Error: {error}</div>
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-semibold">Current Classes</h1>
+          <p className="text-md text-gray-600 mt-1">View and manage your registered courses for each semester</p>
+        </div>
+        <Select
+          value={selectedSemester}
+          onValueChange={setSelectedSemester}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Select semester" />
+          </SelectTrigger>
+          <SelectContent>
+            {semesters.map((semester) => (
+              <SelectItem key={semester} value={semester}>
+                {semester}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <Card>
+        <CardContent>
+          {filteredCourses.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">Not Registered for Any Courses</div>
+          ) : (
+            <div className="space-y-8">
+              {selectedSemester === "All Semesters" ? (
+                // Group courses by semester when "All Semesters" is selected
+                Object.entries(
+                  courses.reduce((acc, course) => {
+                    const semester = course.course?.semester || 'Unknown'
+                    if (!acc[semester]) acc[semester] = []
+                    acc[semester].push(course)
+                    return acc
+                  }, {} as Record<string, StudentCourse[]>)
+                ).map(([semester, semesterCourses]) => (
+                  <div key={semester} className="space-y-4">
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900">{semester}</h3>
+                      <div className="h-px bg-gray-200 mt-2"></div>
+                    </div>
+                    <div className="space-y-4">
+                      {semesterCourses.map((course) => (
+                        <CourseCard key={course.course_crn} course={course} onDrop={handleDropCourse} />
+                      ))}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                // Show courses normally when a specific semester is selected
+                <div className="space-y-4">
+                  {filteredCourses.map((course) => (
+                    <CourseCard key={course.course_crn} course={course} onDrop={handleDropCourse} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+} 

@@ -6,6 +6,8 @@ import { Login } from "./pages/Login"
 import { Grades } from "./pages/Grades"
 import { NotFound } from "./pages/NotFound"
 import { BrowseClasses } from "./pages/BrowseClasses"
+import { Schedule } from "./pages/Schedule"
+import { CurrentClasses } from "./pages/registration/CurrentClasses"
 import { useState, useEffect } from "react"
 import supabase from "./lib/supabase"
 
@@ -77,6 +79,8 @@ function App() {
           <Route path="profile" element={<Profile />} />
           <Route path="registration">
             <Route path="browse" element={<BrowseClasses />} />
+            <Route path="schedule" element={<Schedule />} />
+            <Route path="current" element={<CurrentClasses />} />
           </Route>
           <Route path="records">
             <Route path="grades" element={<Grades />} />

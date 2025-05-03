@@ -255,9 +255,12 @@ export function BrowseClasses() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Browse Classes</h1>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-semibold">Browse Classes</h1>
+          <p className="text-md text-gray-600 mt-1">Search and enroll in available courses for each semester</p>
+        </div>
         <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

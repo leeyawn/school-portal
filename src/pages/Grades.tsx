@@ -14,94 +14,119 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-
-interface Grade {
-  courseCode: string;
-  courseName: string;
-  credits: number;
-  grade: string;
-  term: string;
-}
-
-interface GradesData {
-  grades: Grade[];
-  terms: string[];
-}
-
-// Mock data - This will be replaced with actual API calls
-const gradesData: GradesData = {
-  grades: [
-    {
-      courseCode: "CS101",
-      courseName: "Introduction to Computer Science",
-      credits: 3,
-      grade: "A",
-      term: "Fall 2023"
-    },
-    {
-      courseCode: "MATH101",
-      courseName: "Calculus I",
-      credits: 4,
-      grade: "B+",
-      term: "Fall 2023"
-    },
-    {
-      courseCode: "ENG101",
-      courseName: "English Composition",
-      credits: 3,
-      grade: "A-",
-      term: "Spring 2024"
-    }
-  ],
-  terms: ["All Terms", "Fall 2023", "Spring 2024"]
-}
+import { useEffect, useState } from "react"
+import supabase, { GradesData, fetchStudentGrades } from "@/lib/supabase"
 
 export function Grades() {
+  const [gradesData, setGradesData] = useState<GradesData>({ grades: [], terms: [] })
+  const [selectedTerm, setSelectedTerm] = useState("All Terms")
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchGrades() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session?.user?.email) {
+          throw new Error('No user session found')
+        }
+
+        // Get the student ID
+        const { data: studentData, error: studentError } = await supabase
+          .from('students')
+          .select('student_id')
+          .eq('email', session.user.email)
+          .single()
+
+        if (studentError) throw studentError
+
+        // Fetch grades using the supabase function
+        const { data, error } = await fetchStudentGrades(studentData.student_id)
+        if (error) throw error
+        if (data) setGradesData(data)
+      } catch (err) {
+        console.error('Error fetching grades:', err)
+        setError(err instanceof Error ? err.message : 'Failed to fetch grades')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchGrades()
+  }, [])
+
+  const filteredGrades = selectedTerm === "All Terms"
+    ? gradesData.grades
+    : gradesData.grades.filter(grade => grade.term === selectedTerm)
+
+  if (loading) {
+    return <div className="flex justify-center items-center min-h-[60vh]">Loading...</div>
+  }
+
+  if (error) {
+    return <div className="flex justify-center items-center min-h-[60vh] text-red-500">Error: {error}</div>
+  }
+
   return (
-    <div className="container mx-auto p-4">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-semibold">View Grades</h1>
+          <p className="text-md text-gray-600 mt-1">View your academic performance and grades for each term</p>
+        </div>
+        <Select
+          value={selectedTerm}
+          onValueChange={setSelectedTerm}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Select term" />
+          </SelectTrigger>
+          <SelectContent>
+            {gradesData.terms.map((term) => (
+              <SelectItem key={term} value={term}>
+                {term}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>Academic Grades</CardTitle>
-            <Select defaultValue="All Terms">
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select term" />
-              </SelectTrigger>
-              <SelectContent>
-                {gradesData.terms.map((term) => (
-                  <SelectItem key={term} value={term}>
-                    {term}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <CardTitle>Academic Grades</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Course Code</TableHead>
-                <TableHead>Course Name</TableHead>
-                <TableHead>Credits</TableHead>
-                <TableHead>Grade</TableHead>
-                <TableHead>Term</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {gradesData.grades.map((grade, index) => (
-                <TableRow key={index}>
-                  <TableCell>{grade.courseCode}</TableCell>
-                  <TableCell>{grade.courseName}</TableCell>
-                  <TableCell>{grade.credits}</TableCell>
-                  <TableCell>{grade.grade}</TableCell>
-                  <TableCell>{grade.term}</TableCell>
+          {filteredGrades.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">No grades available for this term</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Course Code</TableHead>
+                  <TableHead>Course Name</TableHead>
+                  <TableHead>Credits</TableHead>
+                  <TableHead>Midterm Grade</TableHead>
+                  <TableHead>Final Grade</TableHead>
+                  <TableHead>Term</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredGrades.map((grade, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{grade.courseCode}</TableCell>
+                    <TableCell>{grade.courseName}</TableCell>
+                    <TableCell>{grade.credits}</TableCell>
+                    <TableCell>{grade.midgrade ?? '-'}</TableCell>
+                    <TableCell>{grade.fingrade ?? '-'}</TableCell>
+                    <TableCell>{grade.term}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
   )
 } 
+
+
