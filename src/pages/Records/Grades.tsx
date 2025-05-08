@@ -14,46 +14,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { useEffect, useState } from "react"
-import supabase, { GradesData, fetchStudentGrades } from "@/lib/supabase"
+import { useState } from "react"
+import { useStudentGrades } from "@/contexts/StudentGradesContext"
 
 export function Grades() {
-  const [gradesData, setGradesData] = useState<GradesData>({ grades: [], semesters: [] })
   const [selectedSemester, setSelectedSemester] = useState("All Semesters")
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    async function fetchGrades() {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session?.user?.email) {
-          throw new Error('No user session found')
-        }
-
-        // Get the student ID
-        const { data: studentData, error: studentError } = await supabase
-          .from('students')
-          .select('student_id')
-          .eq('email', session.user.email)
-          .single()
-
-        if (studentError) throw studentError
-
-        // Fetch grades using the supabase function
-        const { data, error } = await fetchStudentGrades(studentData.student_id)
-        if (error) throw error
-        if (data) setGradesData(data)
-      } catch (err) {
-        console.error('Error fetching grades:', err)
-        setError(err instanceof Error ? err.message : 'Failed to fetch grades')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchGrades()
-  }, [])
+  const { gradesData, loading, error } = useStudentGrades()
 
   const filteredGrades = selectedSemester === "All Semesters"
     ? gradesData.grades
@@ -90,6 +56,7 @@ export function Grades() {
           </SelectContent>
         </Select>
       </div>
+
       <Card>
         <CardHeader>
           <CardTitle>Academic Grades</CardTitle>

@@ -4,12 +4,16 @@ import { Home } from "./pages/Home"
 import { Profile } from "./pages/Profile"
 import { Login } from "./pages/Login"
 import { Grades } from "./pages/Records/Grades"
+import { Transcript } from "./pages/Records/Transcript"
 import { NotFound } from "./pages/NotFound"
 import { BrowseClasses } from "./pages/registration/BrowseClasses"
 import { Schedule } from "./pages/registration/Schedule"
 import { CurrentClasses } from "./pages/registration/CurrentClasses"
 import { useState, useEffect } from "react"
 import supabase from "./lib/supabase"
+import { StudentProvider } from "./contexts/StudentContext"
+import { StudentCoursesProvider } from "./contexts/StudentCoursesContext"
+import { StudentGradesProvider } from "./contexts/StudentGradesContext"
 
 function App() {
   const [user, setUser] = useState<{
@@ -70,9 +74,15 @@ function App() {
         } />
         <Route path="/" element={
           user.isLoggedIn ? (
-            <Layout>
-              <Outlet />
-            </Layout>
+            <StudentProvider>
+              <StudentCoursesProvider>
+                <StudentGradesProvider>
+                  <Layout>
+                    <Outlet />
+                  </Layout>
+                </StudentGradesProvider>
+              </StudentCoursesProvider>
+            </StudentProvider>
           ) : <Navigate to="/login" replace />
         }>
           <Route index element={<Home />} />
@@ -84,6 +94,7 @@ function App() {
           </Route>
           <Route path="records">
             <Route path="grades" element={<Grades />} />
+            <Route path="transcript" element={<Transcript />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Route>

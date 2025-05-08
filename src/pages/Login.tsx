@@ -56,13 +56,6 @@ export function Login({ onLogin }: LoginProps) {
               name: `${student.first_name} ${student.last_name}`,
               isLoggedIn: true
             })
-            
-            // If student is in pending status, redirect to profile page to complete registration
-            if (student.currentstatus === 'Pending') {
-              navigate("/profile")
-            } else {
-              navigate("/")
-            }
           }
         } catch (error) {
           console.error("Student data error:", error)
@@ -115,6 +108,7 @@ export function Login({ onLogin }: LoginProps) {
             </div>
           )}
           <Button
+            variant="default"
             onClick={handleMicrosoftLogin}
             className="w-full"
             disabled={loading}

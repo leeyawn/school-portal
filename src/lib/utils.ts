@@ -47,7 +47,6 @@ export function formatBuilding(building: string): string {
   const buildingMap: Record<string, string> = {
     "DONOVN": "Donovan Hall",
     "KUNSHL": "Kunsela Hall",
-    // Add more building mappings as needed
   };
   return buildingMap[building] || building;
 }

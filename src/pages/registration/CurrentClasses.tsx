@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card"
-import { useEffect, useState } from "react"
-import supabase, { StudentCourse, fetchStudentCourses, dropCourse } from "@/lib/supabase"
+import { useState } from "react"
+import { StudentCourse, dropCourse, fetchCourses } from "@/lib/supabase"
 import { formatTime, formatDays } from "@/lib/utils"
 import {
   Select,
@@ -22,14 +22,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { useStudent } from "@/contexts/StudentContext"
+import { useStudentCourses } from "@/contexts/StudentCoursesContext"
+import { useStudentGrades } from "@/contexts/StudentGradesContext"
 
 interface CourseCardProps {
   course: StudentCourse;
-  onDrop: (courseCRN: string) => void;
+  onDrop: (courseCRN: number) => void;
 }
 
 function CourseCard({ course, onDrop }: CourseCardProps) {
-  const [courseToDrop, setCourseToDrop] = useState<{ crn: string; title: string } | null>(null)
+  const [courseToDrop, setCourseToDrop] = useState<{ crn: number; title: string } | null>(null)
 
   return (
     <div className="border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-200">
@@ -84,8 +87,8 @@ function CourseCard({ course, onDrop }: CourseCardProps) {
         </div>
         <div className="flex items-center gap-2">
           <Badge
-            variant="secondary"
-            className={`self-start px-4 py-1 text-sm ${
+            variant="default"
+            className={`px-4 py-[7px] text-sm ${
               course.status === 'in_progress' ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-50' : 
               course.status === 'completed' ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-50' : 
               'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-50'
@@ -101,7 +104,7 @@ function CourseCard({ course, onDrop }: CourseCardProps) {
                 <Button
                   variant="destructive"
                   size="sm"
-                  onClick={() => setCourseToDrop({ crn: course.course_crn.toString(), title: course.course?.title || '' })}
+                  onClick={() => setCourseToDrop({ crn: course.course_crn, title: course.course?.title || '' })}
                   className="ml-2"
                 >
                   Drop
@@ -117,7 +120,7 @@ function CourseCard({ course, onDrop }: CourseCardProps) {
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction
-                    className="bg-destructive text-white hover:bg-destructive/90"
+                    className="!bg-destructive text-white hover:!bg-destructive/90"
                     onClick={() => {
                       if (courseToDrop) {
                         onDrop(courseToDrop.crn)
@@ -137,71 +140,43 @@ function CourseCard({ course, onDrop }: CourseCardProps) {
 }
 
 export function CurrentClasses() {
-  const [courses, setCourses] = useState<StudentCourse[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [selectedSemester, setSelectedSemester] = useState<string>("All Semesters")
+  const { student, refreshStudent } = useStudent()
+  const { courses, loading, error, refreshCourses } = useStudentCourses()
+  const { refreshGrades } = useStudentGrades()
 
-  const handleDropCourse = async (courseCRN: string) => {
+  const handleDropCourse = async (courseCRN: number) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user?.email) {
-        throw new Error('No user session found')
+      if (!student) {
+        throw new Error('No student data found')
       }
 
-      const { data: studentData, error: studentError } = await supabase
-        .from('students')
-        .select('student_id')
-        .eq('email', session.user.email)
-        .single()
+      const { success, error } = await dropCourse(student.student_id, courseCRN)
+      if (!success) throw error
 
-      if (studentError) throw studentError
+      // Add a small delay to ensure database changes are propagated
+      await new Promise(resolve => setTimeout(resolve, 500))
 
-      const { error } = await dropCourse(studentData.student_id, parseInt(courseCRN))
-      if (error) throw error
+      // Refresh all relevant contexts
+      await Promise.all([
+        refreshStudent(),
+        refreshCourses(),
+        refreshGrades()
+      ])
 
-      // Refresh the courses list
-      const { data: coursesData, error: coursesError } = await fetchStudentCourses(studentData.student_id)
-      if (coursesError) throw coursesError
-      setCourses(coursesData || [])
+      // Refresh the courses data to show updated availability
+      const { data: updatedCourses, error: fetchError } = await fetchCourses()
+      if (fetchError) throw fetchError
+      
+      // Update the courses state with the new data
+      if (updatedCourses) {
+        refreshCourses() // Use the context's refresh function instead of managing state directly
+      }
     } catch (err) {
       console.error('Error dropping course:', err)
-      setError(err instanceof Error ? err.message : 'Failed to drop course')
+      throw err
     }
   }
-
-  useEffect(() => {
-    async function fetchStudentCoursesData() {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session?.user?.email) {
-          throw new Error('No user session found')
-        }
-
-        const { data: studentData, error: studentError } = await supabase
-          .from('students')
-          .select('student_id')
-          .eq('email', session.user.email)
-          .single()
-
-        if (studentError) throw studentError
-
-        if (studentData) {
-          const { data: coursesData, error: coursesError } = await fetchStudentCourses(studentData.student_id)
-          if (coursesError) throw coursesError
-          console.log('Fetched courses:', coursesData) // Debug log
-          setCourses(coursesData || [])
-        }
-      } catch (err) {
-        console.error('Error fetching courses:', err)
-        setError(err instanceof Error ? err.message : 'Failed to fetch courses')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchStudentCoursesData()
-  }, [])
 
   // Get unique semesters from courses
   const semesters = ["All Semesters", ...new Set(courses
@@ -288,3 +263,10 @@ export function CurrentClasses() {
     </div>
   )
 } 
+
+
+
+
+
+
+

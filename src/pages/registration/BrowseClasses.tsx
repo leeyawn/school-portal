@@ -7,7 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import supabase, { fetchCourses, Course, enrollInCourse } from "@/lib/supabase"
+import { fetchCourses, Course, enrollInCourse } from "@/lib/supabase"
 import {
   ColumnDef,
   flexRender,
@@ -38,6 +38,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useStudent } from "@/contexts/StudentContext"
+import { useStudentCourses } from "@/contexts/StudentCoursesContext"
+import { useStudentGrades } from "@/contexts/StudentGradesContext"
 
 export function BrowseClasses() {
   const [courses, setCourses] = useState<Course[]>([])
@@ -52,10 +55,16 @@ export function BrowseClasses() {
   const [enrollmentError, setEnrollmentError] = useState<string | null>(null)
   const [isEnrolling, setIsEnrolling] = useState(false)
   const pageSize = 25
+  const { student, refreshStudent } = useStudent()
+  const { refreshCourses: refreshStudentCourses } = useStudentCourses()
+  const { refreshGrades } = useStudentGrades()
 
   // Memoize the filtered courses
   const filteredCourses = useMemo(() => {
-    let result = courses.filter(course => course.semester === selectedSemester)
+    let result = [...courses] // Start with all courses
+    
+    // Filter by semester first
+    result = result.filter(course => course.semester === selectedSemester)
     
     // Apply column filters
     columnFilters.forEach(filter => {
@@ -64,15 +73,15 @@ export function BrowseClasses() {
         result = result.filter(course => {
           const courseValue = course[id as keyof Course]
           if (typeof courseValue === 'string') {
-            return courseValue.toLowerCase().includes(value.toString().toLowerCase())
+            return courseValue.toLowerCase().includes(value.toString().toLowerCase().trim())
           }
-          return courseValue?.toString().includes(value.toString())
+          return courseValue?.toString().toLowerCase().includes(value.toString().toLowerCase().trim())
         })
       }
     })
 
     return result
-  }, [courses, selectedSemester, columnFilters])
+  }, [courses, columnFilters, selectedSemester])
 
   // Memoize the paginated courses
   const paginatedCourses = useMemo(() => {
@@ -168,8 +177,13 @@ export function BrowseClasses() {
     setColumnFilters(prev => {
       const existingFilter = prev.find(f => f.id === columnId)
       if (existingFilter) {
+        if (!value.trim()) {
+          // Remove filter if value is empty
+          return prev.filter(f => f.id !== columnId)
+        }
         return prev.map(f => f.id === columnId ? { ...f, value } : f)
       }
+      if (!value.trim()) return prev // Don't add empty filters
       return [...prev, { id: columnId, value }]
     })
     setPageIndex(0) // Reset to first page when filter changes
@@ -182,31 +196,47 @@ export function BrowseClasses() {
     setEnrollmentError(null)
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user?.email) {
-        throw new Error('No user session found')
+      if (!student) {
+        throw new Error('No student data found')
       }
 
-      const { data: studentData, error: studentError } = await supabase
-        .from('students')
-        .select('student_id')
-        .eq('email', session.user.email)
-        .single()
-
-      if (studentError) throw studentError
-
-      const { success, error } = await enrollInCourse(studentData.student_id, selectedCourse.crn)
+      const { success, error } = await enrollInCourse(student.student_id, selectedCourse.crn)
       
       if (!success) {
         throw error
       }
 
+      // Refresh all relevant contexts
+      await Promise.all([
+        refreshStudent(),
+        refreshStudentCourses(),
+        refreshGrades()
+      ])
+
+      // Add a small delay to ensure database changes are propagated
+      await new Promise(resolve => setTimeout(resolve, 500))
+
       // Refresh the courses data to show updated availability
       const { data: updatedCourses, error: fetchError } = await fetchCourses()
       if (fetchError) throw fetchError
       
-      // Update the courses state and reset selected course
-      setCourses(updatedCourses || [])
+      // Update the courses state with the new data
+      if (updatedCourses) {
+        // Keep the course in the list but update its availability
+        setCourses(prevCourses => {
+          const updatedCourseList = prevCourses.map(course => {
+            if (course.crn === selectedCourse.crn) {
+              // Find the updated course data
+              const updatedCourse = updatedCourses.find(c => c.crn === course.crn)
+              return updatedCourse || course
+            }
+            return course
+          })
+          return updatedCourseList
+        })
+      }
+      
+      // Close the dialog
       setSelectedCourse(null)
       
       // Reset to first page to ensure we're showing fresh data
@@ -281,16 +311,15 @@ export function BrowseClasses() {
               variant="ghost"
               size="sm"
               onClick={clearFilters}
-              className="h-8 px-2 lg:px-3"
             >
-              <X className="mr-2 h-4 w-4" />
+              <X className="mr-2" />
               Clear filters
             </Button>
           )}
           <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
             <CollapsibleTrigger asChild>
               <Button variant="outline" size="sm" className="h-8 px-2 lg:px-3">
-                <Filter className="mr-2 h-4 w-4" />
+                <Filter className="mr-2" />
                 Filters
                 {activeFilters > 0 && (
                   <span className="ml-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
@@ -301,74 +330,97 @@ export function BrowseClasses() {
             </CollapsibleTrigger>
             <CollapsibleContent className="absolute right-0 mt-2 w-[300px] rounded-md border bg-background p-4 shadow-md z-50">
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="crn">Course Reference Number</Label>
-                  <Input
-                    id="crn"
-                    placeholder="Filter by CRN..."
-                    value={(columnFilters.find(f => f.id === "crn")?.value as string) ?? ""}
-                    onChange={(event) => handleFilterChange("crn", event.target.value)}
-                  />
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold">Filters</h3>
+                  {activeFilters > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearFilters}
+                      className="h-8 px-2"
+                    >
+                      <X className="mr-2 h-4 w-4" />
+                      Clear all
+                    </Button>
+                  )}
                 </div>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="crn">Course Reference Number</Label>
+                    <Input
+                      id="crn"
+                      placeholder="Filter by CRN..."
+                      value={(columnFilters.find(f => f.id === "crn")?.value as string) ?? ""}
+                      onChange={(event) => handleFilterChange("crn", event.target.value)}
+                      className="h-8"
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="subject">Subject</Label>
-                  <Input
-                    id="subject"
-                    placeholder="Filter by subject..."
-                    value={(columnFilters.find(f => f.id === "subj")?.value as string) ?? ""}
-                    onChange={(event) => handleFilterChange("subj", event.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="course">Course number</Label>
-                  <Input
-                    id="course"
-                    placeholder="Filter by course number..."
-                    value={(columnFilters.find(f => f.id === "crs")?.value as string) ?? ""}
-                    onChange={(event) => handleFilterChange("crs", event.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="title">Course title</Label>
-                  <Input
-                    id="title"
-                    placeholder="Filter by course title..."
-                    value={(columnFilters.find(f => f.id === "title")?.value as string) ?? ""}
-                    onChange={(event) => handleFilterChange("title", event.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="instructor">Instructor</Label>
-                  <Input
-                    id="instructor"
-                    placeholder="Filter by instructor..."
-                    value={(columnFilters.find(f => f.id === "instructor")?.value as string) ?? ""}
-                    onChange={(event) => handleFilterChange("instructor", event.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="days">Days</Label>
-                  <Input
-                    id="days"
-                    placeholder="Filter by days..."
-                    value={(columnFilters.find(f => f.id === "days")?.value as string) ?? ""}
-                    onChange={(event) => handleFilterChange("days", event.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="time">Time</Label>
-                  <Input
-                    id="time"
-                    placeholder="Filter by time..."
-                    value={(columnFilters.find(f => f.id === "time")?.value as string) ?? ""}
-                    onChange={(event) => handleFilterChange("time", event.target.value)}
-                  />
+                  <div className="space-y-2">
+                    <Label htmlFor="subject">Subject</Label>
+                    <Input
+                      id="subject"
+                      placeholder="Filter by subject..."
+                      value={(columnFilters.find(f => f.id === "subj")?.value as string) ?? ""}
+                      onChange={(event) => handleFilterChange("subj", event.target.value)}
+                      className="h-8"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="course">Course number</Label>
+                    <Input
+                      id="course"
+                      placeholder="Filter by course number..."
+                      value={(columnFilters.find(f => f.id === "crs")?.value as string) ?? ""}
+                      onChange={(event) => handleFilterChange("crs", event.target.value)}
+                      className="h-8"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Course title</Label>
+                    <Input
+                      id="title"
+                      placeholder="Filter by course title..."
+                      value={(columnFilters.find(f => f.id === "title")?.value as string) ?? ""}
+                      onChange={(event) => handleFilterChange("title", event.target.value)}
+                      className="h-8"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="instructor">Instructor</Label>
+                    <Input
+                      id="instructor"
+                      placeholder="Filter by instructor..."
+                      value={(columnFilters.find(f => f.id === "instructor")?.value as string) ?? ""}
+                      onChange={(event) => handleFilterChange("instructor", event.target.value)}
+                      className="h-8"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="days">Days</Label>
+                    <Input
+                      id="days"
+                      placeholder="Filter by days..."
+                      value={(columnFilters.find(f => f.id === "days")?.value as string) ?? ""}
+                      onChange={(event) => handleFilterChange("days", event.target.value)}
+                      className="h-8"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="time">Time</Label>
+                    <Input
+                      id="time"
+                      placeholder="Filter by time..."
+                      value={(columnFilters.find(f => f.id === "time")?.value as string) ?? ""}
+                      onChange={(event) => handleFilterChange("time", event.target.value)}
+                      className="h-8"
+                    />
+                  </div>
                 </div>
               </div>
             </CollapsibleContent>
@@ -408,7 +460,7 @@ export function BrowseClasses() {
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
-                  className="cursor-pointer hover:bg-gray-50"
+                  className="cursor-pointer hover:bg-gray-200"
                   onClick={() => setSelectedCourse(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (

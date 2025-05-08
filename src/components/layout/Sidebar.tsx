@@ -5,11 +5,10 @@ import {
   User,
   BookOpen,
   FileText,
-  CreditCard,
-  Heart,
   Home,
   ChevronDown,
-  LogOut
+  LogOut,
+  ExternalLink
 } from "lucide-react"
 import { useState } from "react"
 import supabase from "@/lib/supabase"
@@ -59,27 +58,14 @@ export function Sidebar({ className }: SidebarProps) {
       children: [
         { title: "View Grades", href: "/records/grades" },
         { title: "Academic Transcript", href: "/records/transcript" },
-        { title: "Degree Works", href: "http://uti.degreeworks.suny.edu/" }
+        { title: "Degree Works", href: "http://uti.degreeworks.suny.edu/", isExternal: true }
       ]
-    },
-    {
-      title: "Financial Aid",
-      icon: CreditCard,
-      href: "/financial-aid",
-      children: [
-        { title: "My Eligibility", href: "/financial-aid/eligibility" },
-        { title: "My Award Information", href: "/financial-aid/awards" }
-      ]
-    },
-    {
-      title: "Health Center",
-      icon: Heart,
-      href: "/health"
     },
     {
       title: "Housing & Dining",
       icon: Home,
-      href: "https://banner.sunypoly.edu/BannerExtensibility/customPage/page/P_ZWGKTHOUSE_MAIN/"
+      href: "https://banner.sunypoly.edu/BannerExtensibility/customPage/page/P_ZWGKTHOUSE_MAIN/",
+      isExternal: true
     }
   ]
 
@@ -92,8 +78,8 @@ export function Sidebar({ className }: SidebarProps) {
   }
 
   return (
-    <div className={cn("w-64 border-r bg-sidebar transition-all duration-300 flex flex-col", className)}>
-      <nav className="space-y-2 p-4 flex-1">
+    <div className={cn("w-64 border-r bg-sidebar transition-all duration-300 flex flex-col h-full", className)}>
+      <nav className="space-y-2 p-4">
         {navigation.map((item) => (
           <div key={item.href} className="space-y-1">
             {item.children ? (
@@ -128,8 +114,12 @@ export function Sidebar({ className }: SidebarProps) {
                         )}
                         asChild
                       >
-                        <Link to={child.href}>
+                        <Link 
+                          to={child.href}
+                          {...(child.isExternal ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                        >
                           <span className="text-sm">{child.title}</span>
+                          {child.isExternal && <ExternalLink className="h-3 w-3 ml-1 inline-block" />}
                         </Link>
                       </Button>
                     ))}
@@ -147,16 +137,20 @@ export function Sidebar({ className }: SidebarProps) {
                 )}
                 asChild
               >
-                <Link to={item.href}>
+                <Link 
+                  to={item.href}
+                  {...(item.isExternal ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                >
                   <item.icon className="h-4 w-4" />
                   <span className="text-sm font-medium">{item.title}</span>
+                  {item.isExternal && <ExternalLink className="h-3 w-3 ml-1 inline-block" />}
                 </Link>
               </Button>
             )}
           </div>
         ))}
       </nav>
-      <div className="p-4 border-t">
+      <div className="absolute w-full bottom-0 p-4 border-t mt-auto">
         <Button
           variant="ghost"
           className="w-full justify-start gap-3 px-3 py-2 text-red-500 hover:text-red-600 hover:bg-red-50"

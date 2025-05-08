@@ -82,7 +82,6 @@ export function Schedule() {
 
   if (loading) return <div className="flex justify-center items-center min-h-[60vh]">Loading...</div>;
   if (error) return <div className="flex justify-center items-center min-h-[60vh] text-red-500">Error: {error}</div>;
-  if (semesters.length === 0) return <div className="flex justify-center items-center min-h-[60vh] text-gray-500">No semesters available</div>;
 
   return (
     <div className="space-y-6">
@@ -91,29 +90,33 @@ export function Schedule() {
           <h1 className="text-2xl font-semibold">Student Schedule</h1>
           <p className="text-md text-gray-600 mt-1">View your weekly class schedule and enrolled courses</p>
         </div>
-        <Select
-          value={selectedSemester}
-          onValueChange={setSelectedSemester}
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Select semester" />
-          </SelectTrigger>
-          <SelectContent>
-            {semesters.map((semester) => (
-              <SelectItem key={semester} value={semester}>
-                {semester}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {semesters.length > 0 && (
+          <Select
+            value={selectedSemester}
+            onValueChange={setSelectedSemester}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select semester" />
+            </SelectTrigger>
+            <SelectContent>
+              {semesters.map((semester) => (
+                <SelectItem key={semester} value={semester}>
+                  {semester}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
       <Card>
         <CardHeader>
           <CardTitle>Currently Enrolled Classes</CardTitle>
         </CardHeader>
         <CardContent>
-          {filteredCourses.length === 0 ? (
-            <div className="text-gray-500">Not enrolled in any classes.</div>
+          {semesters.length === 0 ? (
+            <div className="py-8 text-gray-500 text-center">No semesters available.</div>
+          ) : filteredCourses.length === 0 ? (
+            <div className="py-8 text-gray-500">Not enrolled in any classes.</div>
           ) : (
             <ul className="space-y-2">
               {filteredCourses.map((c) => (
@@ -132,58 +135,71 @@ export function Schedule() {
           <CardTitle>Weekly Schedule</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse">
-              <thead>
-                <tr>
-                  <th className="border p-2 w-16 bg-gray-50"></th>
-                  {DAYS.map(day => (
-                    <th key={day} className="border p-2 w-32 bg-gray-50 text-center">{day}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i).map((hour: number) => (
-                  <tr key={hour}>
-                    <td className="border p-2 text-xs bg-gray-50 text-right align-top">
-                      {(() => {
-                        const period = hour >= 12 ? "PM" : "AM";
-                        const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
-                        return `${displayHour}:00 ${period}`;
-                      })()}
-                    </td>
-                    {DAYS.map(day => {
-                      const slotCourses = (calendar[day] || []).filter(c => Math.floor(c.start) === hour);
-                      return (
-                        <td key={day} className="border p-0 align-top h-12 relative">
-                          {slotCourses.map(({ course, start, end }) => {
-                            const duration = Math.ceil(end - start);
-                            return (
-                              <div
-                                key={course.course_crn}
-                                className="bg-blue-100 border-blue-400 border rounded px-1 py-0.5 text-xs mb-0.5 overflow-hidden whitespace-nowrap text-ellipsis"
-                                style={{ 
-                                  position: 'absolute',
-                                  width: 'calc(100% - 2px)',
-                                  height: `${duration * 48}px`,
-                                  margin: '1px'
-                                }}
-                                title={`${course.course?.subj} ${course.course?.crs} - ${course.course?.title}`}
-                              >
-                                {course.course?.subj} {course.course?.crs}
-                              </div>
-                            );
-                          })}
-                        </td>
-                      );
-                    })}
+          {semesters.length === 0 ? (
+            <div className="py-8 text-gray-500 text-center">No semesters available.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full border-collapse">
+                <thead>
+                  <tr>
+                    <th className="border p-2 w-16 bg-gray-50"></th>
+                    {DAYS.map(day => (
+                      <th key={day} className="border p-2 w-32 bg-gray-50 text-center">{day}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i).map((hour: number) => (
+                    <tr key={hour}>
+                      <td className="border p-2 text-xs bg-gray-50 text-right align-top">
+                        {(() => {
+                          const period = hour >= 12 ? "PM" : "AM";
+                          const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+                          return `${displayHour}:00 ${period}`;
+                        })()}
+                      </td>
+                      {DAYS.map(day => {
+                        const slotCourses = (calendar[day] || []).filter(c => Math.floor(c.start) === hour);
+                        return (
+                          <td key={day} className="border p-0 align-top h-12 relative">
+                            {slotCourses.map(({ course, start, end }) => {
+                              const duration = Math.ceil(end - start);
+                              return (
+                                <div
+                                  key={course.course_crn}
+                                  className="bg-blue-100 border-blue-400 border rounded px-1 py-0.5 text-xs mb-0.5 overflow-hidden whitespace-nowrap text-ellipsis"
+                                  style={{ 
+                                    position: 'absolute',
+                                    width: 'calc(100% - 2px)',
+                                    height: `${duration * 48}px`,
+                                    margin: '1px'
+                                  }}
+                                  title={`${course.course?.subj} ${course.course?.crs} - ${course.course?.title}`}
+                                >
+                                  {course.course?.subj} {course.course?.crs}
+                                </div>
+                              );
+                            })}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
   );
 } 
+
+
+
+
+
+
+
+
+
