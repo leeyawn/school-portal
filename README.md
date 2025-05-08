@@ -22,7 +22,7 @@ Before you begin, ensure you have the following installed:
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-username/school-portal.git
+   git clone https://github.com/leeyawn/school-portal.git
    cd school-portal
    ```
 
@@ -69,8 +69,4 @@ school-portal/
 - TanStack Table
 - React Router
 
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
 
